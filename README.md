@@ -2,6 +2,12 @@
 
 Production AWS infrastructure for [Spring Petclinic Microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) (8 services, Spring Boot, Spring Cloud).
 
+## AI-assisted development
+
+This repository is configured for Codex. Codex uses [`AGENTS.md`](AGENTS.md), [`.codex/config.toml`](.codex/config.toml), project agents under [`.codex/agents/`](.codex/agents/), detailed guidance under [`.codex/guides/`](.codex/guides/), and reusable skills under [`.agents/skills/`](.agents/skills/).
+
+After trusting the repository in Codex, review and trust the project safety hooks with `/hooks`. Restart an existing Codex session after configuration changes so it reloads `AGENTS.md`, MCP servers, agents, and hooks.
+
 ## Repository Structure
 
 ```

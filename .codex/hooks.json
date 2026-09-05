@@ -1,0 +1,37 @@
+{
+  "description": "Petclinic infrastructure safety hooks for Codex.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/block-destroy.sh\"",
+            "statusMessage": "Checking infrastructure safety"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/block-dangerous-rm.sh\"",
+            "statusMessage": "Checking protected paths"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/block-secret-commit.sh\"",
+            "statusMessage": "Checking staged paths for secrets"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.*__(ExecuteTerraformCommand|ExecuteTerragruntCommand)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/block-mcp-destroy.sh\"",
+            "statusMessage": "Checking Terraform MCP command"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+name = "doc_reviewer"
+description = "Read-only reviewer for operational documentation, path and command accuracy, completeness, and security."
+sandbox_mode = "read-only"
+developer_instructions = """
+Read `.codex/guides/agents/doc-reviewer.md` completely before reviewing; its checklist and output format are the project specification. Cross-check claims against repository files, cite exact paths and lines, and report findings without editing.
+"""

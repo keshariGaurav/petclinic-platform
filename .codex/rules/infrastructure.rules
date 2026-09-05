@@ -1,0 +1,18 @@
+# Defense in depth for common destructive commands that request execution
+# outside the sandbox. The PreToolUse hooks cover more command shapes.
+prefix_rule(
+    pattern = [["terraform", "terragrunt"], "destroy"],
+    decision = "forbidden",
+    justification = "Create and review a destroy plan manually; infrastructure destruction is not allowed through Codex.",
+    match = ["terraform destroy", "terragrunt destroy -auto-approve"],
+    not_match = ["terraform plan -destroy"],
+)
+
+prefix_rule(
+    pattern = ["kubectl", "delete", ["namespace", "ns"], "petclinic-prod"],
+    decision = "forbidden",
+    justification = "Deleting the production namespace is prohibited; inspect resources and use an approved manual procedure.",
+    match = ["kubectl delete namespace petclinic-prod", "kubectl delete ns petclinic-prod"],
+    not_match = ["kubectl get namespace petclinic-prod"],
+)
+

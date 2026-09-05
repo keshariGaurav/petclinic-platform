@@ -10,7 +10,7 @@
 
 | Epic # | Epic | Priority | Stories |
 |--------|------|----------|---------|
-| E-0 | Claude Code Setup | P0 | 5 |
+| E-0 | Codex Setup | P0 | 5 |
 | E-1 | Foundation & Remote State | P0 | 5 |
 | E-2 | Networking (VPC) | P0 | 5 |
 | E-3 | EKS Cluster | P0 | 7 |
@@ -35,7 +35,7 @@
 ## Epic Dependencies
 
 ```
-E-0 (Claude Code Setup) ──→ E-1 (Foundation)
+E-0 (Codex Setup) ──→ E-1 (Foundation)
 E-1 (Foundation)
  └─→ E-2 (VPC)
       └─→ E-3 (EKS) ──→ E-8 (K8s Base) ──→ E-16 (Helm Charts)
@@ -61,10 +61,10 @@ E-1 (Foundation)
 
 ---
 
-# EPIC E-0: Claude Code Setup
+# EPIC E-0: Codex Setup
 
 **Priority:** P0
-**Description:** Configure Claude Code for the petclinic-platform repo before writing any infrastructure code. This sets up the AI agent's context, safety guardrails, workflows, and tooling so every subsequent task benefits from intelligent assistance.
+**Description:** Configure Codex for the petclinic-platform repo before writing any infrastructure code. This sets up the coding agent's context, safety guardrails, workflows, and tooling so every subsequent task benefits from intelligent assistance.
 **Blocked by:** None
 **Blocks:** E-1 (all subsequent work uses this configuration)
 
@@ -74,62 +74,61 @@ E-1 (Foundation)
 
 **Type:** Task
 **Priority:** P0
-**Epic:** E-0 Claude Code Setup
+**Epic:** E-0 Codex Setup
 **Story Points:** 2
-**Labels:** claude, mcp, foundation
+**Labels:** codex, mcp, foundation
 **Blocked by:** None
 
 **Description:**
-Create `.mcp.json` at the project root with all MCP servers needed for the infrastructure workflow. These servers give Claude Code access to Terraform docs, AWS knowledge, pricing data, library documentation, and Jira.
+Configure the project MCP servers in `.codex/config.toml`. These servers give Codex access to Terraform docs, AWS knowledge, pricing data, library documentation, and Jira.
 
 **Acceptance Criteria:**
-- [ ] `.mcp.json` at petclinic-platform root
+- [ ] MCP server tables in `.codex/config.toml`
 - [ ] Terraform MCP server configured (`awslabs.terraform-mcp-server`)
 - [ ] AWS Knowledge MCP configured (`aws-knowledge-mcp`)
 - [ ] AWS Pricing MCP configured (`awslabs.aws-pricing-mcp-server`, region: eu-central-1)
 - [ ] Context7 MCP configured (library documentation)
 - [ ] Atlassian MCP configured (Jira ticket management)
-- [ ] No secrets stored in `.mcp.json` — credentials come from user's local environment
+- [ ] No secrets stored in project configuration — credentials come from the user's local environment
 
 ---
 
-### PETPLAT-002: Create Claude Code safety hooks
+### PETPLAT-002: Create Codex safety hooks
 
 **Type:** Task
 **Priority:** P0
-**Epic:** E-0 Claude Code Setup
+**Epic:** E-0 Codex Setup
 **Story Points:** 3
-**Labels:** claude, safety, foundation
+**Labels:** codex, safety, foundation
 **Blocked by:** PETPLAT-001
 
 **Description:**
-Create safety hook scripts in `.claude/hooks/` and configure them in `.claude/settings.json`. Hooks prevent Claude Code from running dangerous commands (terraform destroy, rm -rf on infra dirs, committing secrets) and warn about risky operations (apply without saved plan). Also add an informational hook that suggests `terraform validate` after editing .tf files.
+Create safety hook scripts in `.codex/hooks/` and configure them in `.codex/hooks.json`. Hooks prevent Codex from running dangerous commands such as Terraform destroy, recursive deletion of infrastructure directories, and committing secret files. Keep plan-before-apply and validation requirements in `AGENTS.md`.
 
 **Acceptance Criteria:**
-- [ ] `.claude/settings.json` with PreToolUse and PostToolUse hook configuration
+- [ ] `.codex/hooks.json` with PreToolUse hook configuration
 - [ ] `block-destroy.sh` — blocks `terraform destroy` (exit 2, hard deny)
-- [ ] `block-dangerous-rm.sh` — blocks `rm -rf` on terraform/, k8s/, .github/, docs/, scripts/
-- [ ] `warn-apply-without-plan.sh` — warns on `terraform apply` without plan.out (exit 1, ask user)
-- [ ] `suggest-validate.sh` — suggests `terraform validate` after .tf edits (exit 0, informational)
+- [ ] `block-dangerous-rm.sh` — blocks `rm -rf` on infrastructure and Codex configuration directories
 - [ ] `block-secret-commit.sh` — blocks git add/commit of .env, .tfvars, .pem, credentials files
+- [ ] `block-mcp-destroy.sh` — blocks destroy operations sent through Terraform MCP tools
 - [ ] All scripts use `jq` for JSON parsing, include educational comments
-- [ ] 3-tier model: block (exit 2) / warn (exit 1) / inform (exit 0)
+- [ ] Blocking hooks return exit 2 with a reason on stderr
 
 ---
 
-### PETPLAT-003: Create Claude Code rules, agents, and skills
+### PETPLAT-003: Create Codex guides, agents, and skills
 
 **Type:** Task
 **Priority:** P0
-**Epic:** E-0 Claude Code Setup
+**Epic:** E-0 Codex Setup
 **Story Points:** 5
-**Labels:** claude, automation, foundation
+**Labels:** codex, automation, foundation
 **Blocked by:** PETPLAT-82
 
 **Description:**
-Create file-pattern rules (`.claude/rules/`), review subagents (`.claude/agents/`), and operational skills (`.claude/skills/`) for the infrastructure workflow.
+Create scoped guidance (`.codex/guides/rules/`), custom review agents (`.codex/agents/`), reviewer specifications (`.codex/guides/agents/`), and operational skills (`.agents/skills/`) for the infrastructure workflow.
 
-**Rules** load automatically when editing matching files:
+**Guides** are routed by `AGENTS.md` when working in matching areas:
 - `terraform.md` — conventions for `terraform/**/*.tf`
 - `kubernetes.md` — conventions for `k8s/**/*.yaml`
 - `pipelines.md` — conventions for `.github/workflows/**/*.yml`
@@ -143,44 +142,45 @@ Create file-pattern rules (`.claude/rules/`), review subagents (`.claude/agents/
 - `doc-reviewer.md` — documentation quality and accuracy review
 - `pipeline-reviewer.md` — CI/CD pipeline security and best practices
 
-**Skills** are slash commands for common operations:
-- `/terraform-plan [env]` — init + plan (manual only)
-- `/terraform-apply [env]` — apply saved plan with confirmation (manual only)
-- `/security-scan [module|all]` — Checkov scan (manual only)
-- `/deploy-dev [service|all]` — deploy to dev namespace (manual only)
-- `/deploy-prod [service|all]` — deploy to prod with extra safety (manual only)
-- `/smoke-test [env]` — health check all services (manual only)
-- `/logs [service] [env]` — fetch and filter pod logs (manual only)
-- `/rollback [service] [env]` — rollback deployment (manual only)
-- `/review-terraform [path]` — review against checklist (auto-invocable)
+**Skills** use Codex `$skill-name` invocation for common operations:
+- `$terraform-plan [env]` — init + saved plan
+- `$terraform-apply [env]` — apply a saved plan with confirmation
+- `$security-scan [module|all]` — Checkov scan
+- `$deploy-dev [service|all]` — deploy to the dev namespace
+- `$deploy-prod [service|all]` — deploy to production with extra safety
+- `$smoke-test [env]` — health-check all services
+- `$logs [service] [env]` — fetch and filter pod logs
+- `$rollback [service] [env]` — roll back a deployment
+- `$review-terraform [path]` — review against the project checklist
 
 **Acceptance Criteria:**
-- [ ] 4 rule files with `paths:` frontmatter for selective loading (terraform, kubernetes, pipelines, docs)
-- [ ] 6 agent files — read-only tools only, structured output format
-- [ ] 9 skill directories with SKILL.md — 8 manual (`disable-model-invocation: true`), 1 auto-invocable
+- [ ] 5 scoped guide files (Terraform, Kubernetes, Helm, pipelines, docs), routed by `AGENTS.md`
+- [ ] 6 read-only custom agent TOML profiles with structured reviewer specifications
+- [ ] 9 valid repository skill directories under `.agents/skills/`
 - [ ] All skills accept arguments (environment or service name)
 - [ ] Deploy-prod has extra confirmation step vs deploy-dev
 - [ ] Agents report findings in structured format with file:line references
 
 ---
 
-### PETPLAT-004: Verify Claude Code configuration end-to-end
+### PETPLAT-004: Verify Codex configuration end-to-end
 
 **Type:** Task
 **Priority:** P0
-**Epic:** E-0 Claude Code Setup
+**Epic:** E-0 Codex Setup
 **Story Points:** 1
-**Labels:** claude, verification
+**Labels:** codex, verification
 **Blocked by:** PETPLAT-003
 
 **Description:**
-Start a new Claude Code session in petclinic-platform/ and verify the full configuration is working: CLAUDE.md loads, MCP servers connect, skills appear, hooks fire, rules activate on file patterns.
+Start a new Codex session in `petclinic-platform/` and verify the full configuration: `AGENTS.md` loads, MCP servers initialize, skills and custom agents appear, hooks fire, and area-specific guides are followed.
 
 **Acceptance Criteria:**
-- [ ] CLAUDE.md project conventions visible in Claude's context
-- [ ] Type `/` and all 7 skills appear in autocomplete
-- [ ] Ask Claude to run `terraform destroy` — blocked by hook
-- [ ] Create a test .tf file — terraform rules activate
+- [ ] `AGENTS.md` project conventions are visible in Codex context
+- [ ] Type `$` or use `/skills` and all 9 repository skills appear
+- [ ] Custom agents under `.codex/agents/` are discoverable
+- [ ] Ask Codex to run `terraform destroy` — blocked by hook
+- [ ] Terraform work loads `.codex/guides/rules/terraform.md`
 - [ ] MCP servers respond (test with a Terraform docs search)
 - [ ] All files committed to git
 
@@ -2169,20 +2169,20 @@ Create ADRs for key architecture decisions made during the project.
 
 ---
 
-### PETPLAT-82: Create CLAUDE.md for petclinic-platform repo
+### PETPLAT-82: Create AGENTS.md for petclinic-platform repo
 
 **Type:** Task
 **Priority:** P0
-**Epic:** E-0 Claude Code Setup
+**Epic:** E-0 Codex Setup
 **Story Points:** 3
-**Labels:** claude, foundation
+**Labels:** codex, foundation
 **Blocked by:** None
 
 **Description:**
-Create a CLAUDE.md in petclinic-platform that gives Claude Code full context about the infrastructure repo. This is the first file created — it establishes conventions before any infrastructure code is written.
+Create an `AGENTS.md` in petclinic-platform that gives Codex full context about the infrastructure repo. This is the first file created and establishes conventions before any infrastructure code is written.
 
 **Acceptance Criteria:**
-- [ ] `CLAUDE.md` at petclinic-platform root (< 200 lines)
+- [ ] `AGENTS.md` at petclinic-platform root and below Codex's default project-instruction size limit
 - [ ] Repo purpose and directory layout
 - [ ] Terraform conventions (module pattern, naming, state, tags)
 - [ ] K8s manifest conventions (labels, probes, resources, secrets)
@@ -2190,7 +2190,7 @@ Create a CLAUDE.md in petclinic-platform that gives Claude Code full context abo
 - [ ] AWS environment details (dev vs prod table)
 - [ ] Application services table (8 services, ports, MySQL needs)
 - [ ] MCP servers documented
-- [ ] Does NOT duplicate workspace-level CLAUDE.md (app details)
+- [ ] Does not duplicate unrelated user-level Codex instructions
 
 ---
 
@@ -2952,7 +2952,7 @@ Test the complete GitOps loop: CI builds and pushes image → CI updates image t
 
 | Priority | Epics | Stories/Tasks |
 |----------|-------|---------------|
-| P0 | Claude Code Setup, Foundation, VPC, EKS, ECR, RDS, Secrets (Secrets Manager), K8s Base, CI Pipeline, Helm Charts, GitOps (ArgoCD) | 64 |
+| P0 | Codex Setup, Foundation, VPC, EKS, ECR, RDS, Secrets (Secrets Manager), K8s Base, CI Pipeline, Helm Charts, GitOps (ArgoCD) | 64 |
 | P1 | DNS, K8s Overlays, Observability, Security, Docs | 38 |
 | P2 | Scaling & Cost (Karpenter) | 6 |
 | **Total** | **17 epics (E-12 removed = 16 active)** | **108 stories/tasks** |
